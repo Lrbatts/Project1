@@ -1,16 +1,23 @@
 ---
-title: "Project1"
+title: "Intro to APIs: Interacting with PokeAPI"
 author: "Landon Batts"
 date: '2023-06-21'
-output: github_document
+output: 
+  github_document:
+    toc: true
+  
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-This is a vignette to show how to retrieve data from an API. In order to demonstrate, I will be retrieving data from a Pokemon API displaying data of various topics about Pokemon throughout the years. I
-```{r, cache=TRUE}
+This is a vignette to show how to retrieve data from an API. In order to demonstrate, I will be retrieving data from a Pokemon API displaying data of various topics about Pokemon and it's universe.  
+
+I will be writing functions in order to contact [PokeAPI](https://pokeapi.co/) and return usable data frames that can be used to display summaries.
+
+
+```{r, message=FALSE, warning=FALSE}
 library(httr)
 library(jsonlite)
 library(tidyverse)
@@ -38,41 +45,49 @@ pokedf <- pokeurl %>% select(url) %>% add_column(pokedata) %>%
   unnest_longer(col=abilities) %>% select(name,abilities,base_experience,height,weight)
 
 pokemonapi <- function(endpoint){
-  pokemon2 <- GET("https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0")
-  parsed2 <- fromJSON(rawToChar(pokemon2$content))
-  pokeurl <- parsed2$results
+  pokemon <- GET("https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0")
+  parsed <- fromJSON(rawToChar(pokemon$content))
+  pokeurl <- parsed$results
   pokedata <- lapply(lapply(lapply(pokeurl$url,GET),rawtocharacter),fromJSON)
   if(endpoint=="abilities"){
     pokedf <- pokeurl %>% select(url) %>% add_column(pokedata) %>%
   unnest_wider(pokedata,names_repair='minimal') %>% 
-  unnest_longer(col=abilities) %>% select(name,abilities,base_experience,height,weight)
+  unnest_longer(col=abilities) 
+    
+    pokedf <- pokedf %>% cbind(ability=as.vector(pokedf$abilities$ability$name)) %>% select(name,ability,base_experience,height,weight)
   }
   if(endpoint=="moves"){
     pokedf <- pokeurl %>% select(url) %>% add_column(pokedata) %>%
   unnest_wider(pokedata,names_repair='minimal') %>% 
-  unnest_longer(col=moves) %>% select(name,moves,base_experience,height,weight)
+  unnest_longer(col=moves)
+    
+    pokedf <- pokedf %>% cbind(move=as.vector(pokedf$moves$move$name)) %>% select(name,move,base_experience,height,weight)
   }
   if(endpoint=="forms"){
     pokedf <- pokeurl %>% select(url) %>% add_column(pokedata) %>%
   unnest_wider(pokedata,names_repair='minimal') %>% 
-  unnest_longer(col=forms) %>% select(name,forms,base_experience,height,weight)
+  unnest_longer(col=forms) 
+    
+    pokedf <- pokedf %>% cbind(form=as.vector(pokedf$forms$name)) %>% select(name,form,base_experience,height,weight)
   }
   if(endpoint=="stats"){
     pokedf <- pokeurl %>% select(url) %>% add_column(pokedata) %>%
   unnest_wider(pokedata,names_repair='minimal') %>% 
-  unnest_longer(col=stats) %>% select(name,stats,base_experience,height,weight)
+  unnest_longer(col=stats) 
+    
+    pokedf <- pokedf %>% cbind(basestat=as.vector(pokedf$stats$base_stat),statname=as.vector(pokedf$stats$stat$name)) %>% select(name,statname,basestat,base_experience,height,weight)
   }
   if(endpoint=="types"){
     pokedf <- pokeurl %>% select(url) %>% add_column(pokedata) %>%
   unnest_wider(pokedata,names_repair='minimal')  %>%
-  unnest_longer(col=types) %>%
-  select(name,types,base_experience,height,weight)
+  unnest_longer(col=types) 
+    pokedf <- pokedf %>% cbind(type=as.vector(pokedf$types$type$name)) %>% select(name,type,base_experience,height,weight)
   }
-  pokedf$types[,2]
   if(endpoint=="game"){
     pokedf <- pokeurl %>% select(url) %>% add_column(pokedata) %>%
   unnest_wider(pokedata,names_repair='minimal') %>% 
-  unnest_longer(col=game_indices) %>% select(name,game_indices,base_experience,height,weight)
+  unnest_longer(col=game_indices)
+    pokedf <- pokedf %>% cbind(games=as.vector(pokedf$game_indices$version$name)) %>% select(name,games,base_experience,height,weight)
   }
   return(pokedf)
 }
@@ -82,5 +97,7 @@ forms <- pokemonapi(endpoint="forms")
 stat <- pokemonapi(endpoint="stats")
 types <- pokemonapi(endpoint="types")
 game <- pokemonapi(endpoint="game")
-table(pokedf$types[,2])
+table(type$type)
+g <- ggplot(data=type,aes(x=type))
+g + geom_bar()
 ```
