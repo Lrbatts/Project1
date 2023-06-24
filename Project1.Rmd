@@ -16,88 +16,99 @@ This is a vignette to show how to retrieve data from an API. In order to demonst
 
 I will be writing functions in order to contact [PokeAPI](https://pokeapi.co/) and return usable data frames that can be used to display summaries.
 
+##Required Packages
+In order to create functions to contact and interact with PokeAPI, the following packages are needed:
+
+- [`tidyverse`](https://www.tidyverse.org/packages/) - Family of packages for manipulating and visualizing data
+- [`jsonlite`](https://cran.r-project.org/web/packages/jsonlite/index.html) - package for dealing with and reading in JSON data in R
+- [`httr`](https://cran.r-project.org/web/packages/httr/vignettes/quickstart.html)- package used for contacting the API in order to retrieve data
 
 ```{r, message=FALSE, warning=FALSE}
 library(httr)
 library(jsonlite)
 library(tidyverse)
-pokemon <- GET("https://pokeapi.co/api/v2/move?limit=100000&offset=0")
-str(pokemon,max.level=1)
-parsed <- fromJSON(rawToChar(pokemon$content))
-str(parsed,max.level=1)
-results <- parsed$results
+```
+
+##API Interaction Functions
+In order to actually access and interact with data from the API, I created some functions to make it easier and user-friendly.
+
+### `rawtocharacter`
+I created this function to apply the rawToChar function in order to convert the raw JSON data to character variables in order to be in a usable form
+```{r}
 rawtocharacter <- function(x) {
   rawToChar(x$content)
 }
-movesdata <- lapply(lapply(lapply(results$url,GET),rawtocharacter),fromJSON)
+```
 
-movesdf <- results  %>% select(url) %>% add_column(movesdata) %>%
-  unnest_wider(movesdata,names_repair='minimal')
- 
-pokemon2 <- GET("https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0")
-str(pokemon2)
-parsed2 <- fromJSON(rawToChar(pokemon2$content))
-str(parsed2,max.level=1)
-pokeurl <- parsed2$results
-pokedata <- lapply(lapply(lapply(pokeurl$url,GET),rawtocharacter),fromJSON)
-pokedf <- pokeurl %>% select(url) %>% add_column(pokedata) %>%
-  unnest_wider(pokedata,names_repair='minimal') %>% 
-  unnest_longer(col=abilities) %>% select(name,abilities,base_experience,height,weight)
-
+### `pokemonapi`
+I decided to make a function to call the PokeAPI and be able to extract data into a usable form based on the user's options
+```{r}
 pokemonapi <- function(endpoint){
-  pokemon <- GET("https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0")
-  parsed <- fromJSON(rawToChar(pokemon$content))
-  pokeurl <- parsed$results
-  pokedata <- lapply(lapply(lapply(pokeurl$url,GET),rawtocharacter),fromJSON)
+  pokemon <- GET("https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0") #GET function calls to PokeAPI
+  parsed <- fromJSON(rawToChar(pokemon$content)) #used fromJSON function to get parsed data in character form
+  pokeurl <- parsed$results #saves urls from parsed results
+  pokedata <- lapply(lapply(lapply(pokeurl$url,GET),rawtocharacter),fromJSON) #applies GET function to each url in order to get data from all endpoints
   if(endpoint=="abilities"){
     pokedf <- pokeurl %>% select(url) %>% add_column(pokedata) %>%
   unnest_wider(pokedata,names_repair='minimal') %>% 
-  unnest_longer(col=abilities) 
+  unnest_longer(col=abilities)#returns dataset with url and data for ability for each pokemon
     
     pokedf <- pokedf %>% cbind(ability=as.vector(pokedf$abilities$ability$name)) %>% select(name,ability,base_experience,height,weight)
+    #makes variable form dataframe variable in order to select usable columns
   }
   if(endpoint=="moves"){
     pokedf <- pokeurl %>% select(url) %>% add_column(pokedata) %>%
   unnest_wider(pokedata,names_repair='minimal') %>% 
-  unnest_longer(col=moves)
+  unnest_longer(col=moves) #returns dataset with url and data for each move for every pokemon from moves endpoint
     
     pokedf <- pokedf %>% cbind(move=as.vector(pokedf$moves$move$name)) %>% select(name,move,base_experience,height,weight)
   }
   if(endpoint=="forms"){
     pokedf <- pokeurl %>% select(url) %>% add_column(pokedata) %>%
   unnest_wider(pokedata,names_repair='minimal') %>% 
-  unnest_longer(col=forms) 
+  unnest_longer(col=forms) #returns dataset with url and data for each form for every pokemon from form endpoint
     
     pokedf <- pokedf %>% cbind(form=as.vector(pokedf$forms$name)) %>% select(name,form,base_experience,height,weight)
   }
   if(endpoint=="stats"){
     pokedf <- pokeurl %>% select(url) %>% add_column(pokedata) %>%
   unnest_wider(pokedata,names_repair='minimal') %>% 
-  unnest_longer(col=stats) 
+  unnest_longer(col=stats) #returns dataset with url and data for each stat and their level for every pokemon from stats endpoint
     
     pokedf <- pokedf %>% cbind(basestat=as.vector(pokedf$stats$base_stat),statname=as.vector(pokedf$stats$stat$name)) %>% select(name,statname,basestat,base_experience,height,weight)
   }
   if(endpoint=="types"){
     pokedf <- pokeurl %>% select(url) %>% add_column(pokedata) %>%
   unnest_wider(pokedata,names_repair='minimal')  %>%
-  unnest_longer(col=types) 
+  unnest_longer(col=types) #returns dataset with url and data for each type for every pokemon from types endpoint
+    
     pokedf <- pokedf %>% cbind(type=as.vector(pokedf$types$type$name)) %>% select(name,type,base_experience,height,weight)
   }
   if(endpoint=="game"){
     pokedf <- pokeurl %>% select(url) %>% add_column(pokedata) %>%
   unnest_wider(pokedata,names_repair='minimal') %>% 
-  unnest_longer(col=game_indices)
+  unnest_longer(col=game_indices) #returns dataset with url and data for each game that the Pokemon are included for every pokemon from the game_indices endpoint
     pokedf <- pokedf %>% cbind(games=as.vector(pokedf$game_indices$version$name)) %>% select(name,games,base_experience,height,weight)
   }
   return(pokedf)
 }
+```
+With this function, the user is able to specify one of 6 potential endpoints available and returns a dataframe with data for each. Also included in the data frame is common statistics for Pokemon including experience, height, and weight.
+
+##Data Exploration
+Now that the function to read in a dataframe has been created, we can use this to create summaries and graphs. First, I'll get a dataset for each endpoint in order to have data from each stat in a usable form
+```{r,cache=TRUE}
 abilities <- pokemonapi(endpoint="abilities")
 moves <- pokemonapi(endpoint="moves")
 forms <- pokemonapi(endpoint="forms")
 stat <- pokemonapi(endpoint="stats")
 types <- pokemonapi(endpoint="types")
 game <- pokemonapi(endpoint="game")
-table(type$type)
-g <- ggplot(data=type,aes(x=type))
-g + geom_bar()
+table(types$type)
+#Creates contingency table for amount of pokemon for each type
+g <- ggplot(data=types,aes(x=type)) #Creates object for type data that can be used to create plots
+g + geom_bar(aes(fill="red")) +
+theme(axis.text.x = element_text(angle = 90, hjust = 1),legend.position = "none") + labs(x="Pokemon Type",y="Count",title="Pokemon Type Bar Graph")
+#Creates labeled bar graph with red bars of pokemon type
+
 ```
