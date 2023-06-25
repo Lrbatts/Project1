@@ -132,7 +132,7 @@ g4 + geom_boxplot() + facet_wrap(~statname) + labs(title="Base Stat level for ea
 
 #In order to see this numerically, I will now provide summary stats for the base stat of each different stat name
 statsum <- stat %>% select(basestat,statname) %>% 
-  group_by(statname) #group by each level of statname %>%
+  group_by(statname) %>%
   summarize("Min"=min(basestat),
             "Q1"=quantile(basestat,0.25,na.rm=TRUE),
             "Median"=quantile(basestat,0.25,na.rm=TRUE),
