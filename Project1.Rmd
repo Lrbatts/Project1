@@ -39,10 +39,9 @@ rawtocharacter <- function(x) {
   rawToChar(x$content)
 }
 ```
-
 ### `pokemonapi`
 I decided to make a function to call the PokeAPI and be able to extract data into a usable form based on the user's options
-```{r}
+```{r, warning=FALSE}
 pokemonapi <- function(endpoint){
   pokemon <- GET("https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0") #GET function calls to PokeAPI
   parsed <- fromJSON(rawToChar(pokemon$content)) #used fromJSON function to get parsed data in character form
@@ -97,11 +96,12 @@ With this function, the user is able to specify one of 6 potential endpoints ava
 
 ##Data Exploration
 Now that the function to read in a dataframe has been created, we can use this to create summaries and graphs. First, I'll get a dataset for each endpoint in order to have data from each stat in a usable form
-```{r,cache=TRUE}
+```{r,cache=TRUE,warning=FALSE}
 abilities <- pokemonapi(endpoint="abilities")
 moves <- pokemonapi(endpoint="moves")
 forms <- pokemonapi(endpoint="forms")
 stat <- pokemonapi(endpoint="stats")
+stat <- na.omit(stat)
 types <- pokemonapi(endpoint="types")
 game <- pokemonapi(endpoint="game")
 table(types$type)
@@ -110,5 +110,21 @@ g <- ggplot(data=types,aes(x=type)) #Creates object for type data that can be us
 g + geom_bar(aes(fill="red")) +
 theme(axis.text.x = element_text(angle = 90, hjust = 1),legend.position = "none") + labs(x="Pokemon Type",y="Count",title="Pokemon Type Bar Graph")
 #Creates labeled bar graph with red bars of pokemon type
-
+#There is a pretty even spread of pokemon types with water having the most pokemon and ice having the least
+types <- types %>% mutate(heightweight=weight/height)
+#Creates new variable in types data set for the weight height ratio in order to have a continuous variable for plots
+g2 <- ggplot(data=types,aes(x=heightweight))
+g2 + geom_histogram(fill="red") + xlim(0,400)+labs(title="Distribution of Weight/Height Ratio", x="Weight/Height Ratio",y="Count")
+#From the graph, the distribution appears right skewed as a majority of pokemon are smaller with some larger ones such as snorlax
+g2 + geom_boxplot()+ xlim(0,400) + labs(title="Boxplot of Pokemon Weight/Height Ratio",x="Weight/Height Ratio")
+#Since there is such a wide range of ratios and the data is skewed, there are many outliers present. It appears that the median ratio is around 30 while the maximum is all the way at nearly 1000
+g3 <- ggplot(data=stat,aes(x=basestat,y=base_experience))
+g3+geom_point(aes(col=statname)) + labs(title="Base Stat Level vs Base XP", x="Base Stat",y="Base Experience")
+#This creates a scatterplot comparing the relationship between the base level of a Pokemons stat with their base level experience
+#It appears to be somewhat of a positive relationship as the stonger pokemon tend to have more experience.
+#I also grouped by statname to see if there were a difference for each type of stat although all stats seem to increase along with experience as well
+g4 <- ggplot(data=stat,aes(x=basestat))
+g4 + geom_boxplot() + facet_wrap(~statname) + labs(title="Base Stat level for each Stat Type",x="Base Stat")
+#This creates box plots for each type of stat over the level of the base stat for each pokemon.
+#Each stat has a similar median with attack being the highest slightly. Although, hp has more outliers and a higher max.
 ```
