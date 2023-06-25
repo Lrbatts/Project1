@@ -24,6 +24,8 @@ interact with PokeAPI, the following packages are needed:
   package for dealing with and reading in JSON data in R
 - [`httr`](https://cran.r-project.org/web/packages/httr/vignettes/quickstart.html)-
   package used for contacting the API in order to retrieve data
+- [`knitr`](https://cran.r-project.org/web/packages/knitr/index.html):
+  displaying tables in a markdown friendly way
 
 ``` r
 library(httr)
@@ -154,7 +156,7 @@ g + geom_bar(aes(fill="red")) +
 theme(axis.text.x = element_text(angle = 90, hjust = 1),legend.position = "none") + labs(x="Pokemon Type",y="Count",title="Pokemon Type Bar Graph")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-78-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
 ``` r
 #Creates labeled bar graph with red bars of pokemon type
@@ -168,14 +170,14 @@ g2 + geom_histogram(fill="red") + xlim(0,400)+labs(title="Distribution of Weight
     ## `stat_bin()` using `bins = 30`. Pick better value with
     ## `binwidth`.
 
-![](README_files/figure-gfm/unnamed-chunk-78-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-8-2.png)<!-- -->
 
 ``` r
 #From the graph, the distribution appears right skewed as a majority of pokemon are smaller with some larger ones such as snorlax
 g2 + geom_boxplot()+ xlim(0,400) + labs(title="Boxplot of Pokemon Weight/Height Ratio",x="Weight/Height Ratio")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-78-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-8-3.png)<!-- -->
 
 ``` r
 #Since there is such a wide range of ratios and the data is skewed, there are many outliers present. It appears that the median ratio is around 30 while the maximum is all the way at nearly 1000
@@ -183,7 +185,7 @@ g3 <- ggplot(data=stat,aes(x=basestat,y=base_experience))
 g3+geom_point(aes(col=statname)) + labs(title="Base Stat Level vs Base XP", x="Base Stat",y="Base Experience")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-78-4.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-8-4.png)<!-- -->
 
 ``` r
 #This creates a scatterplot comparing the relationship between the base level of a Pokemons stat with their base level experience
@@ -193,9 +195,34 @@ g4 <- ggplot(data=stat,aes(x=basestat))
 g4 + geom_boxplot() + facet_wrap(~statname) + labs(title="Base Stat level for each Stat Type",x="Base Stat")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-78-5.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-8-5.png)<!-- -->
 
 ``` r
 #This creates box plots for each type of stat over the level of the base stat for each pokemon.
 #Each stat has a similar median with attack being the highest slightly. Although, hp has more outliers and a higher max.
+
+#In order to see this numerically, I will now provide summary stats for the base stat of each different stat name
+statsum <- stat %>% select(basestat,statname) %>% 
+  group_by(statname) %>%
+  summarize("Min"=min(basestat),
+            "Q1"=quantile(basestat,0.25,na.rm=TRUE),
+            "Median"=quantile(basestat,0.25,na.rm=TRUE),
+            "Mean"=mean(basestat),
+            "Q3"=quantile(basestat,0.75,na.rm=TRUE),
+            "Max"=max(basestat),
+            "Standard Deviation"=sd(basestat))
+#Statsum now has summary statistics for base stat for each level of stat name
+#Now I will put this in a better looking table using the kable function
+knitr::kable(statsum,caption="Summary Statistics for Base Stat by Stat Name",digits=2)
 ```
+
+| statname        | Min |    Q1 | Median |  Mean |  Q3 | Max | Standard Deviation |
+|:----------------|----:|------:|-------:|------:|----:|----:|-------------------:|
+| attack          |   5 | 55.25 |  55.25 | 80.72 | 100 | 190 |              31.98 |
+| defense         |   5 | 50.25 |  50.25 | 74.67 |  90 | 250 |              30.90 |
+| hp              |   1 | 50.00 |  50.00 | 69.97 |  80 | 255 |              26.61 |
+| special-attack  |  10 | 50.00 |  50.00 | 73.21 |  95 | 194 |              32.35 |
+| special-defense |  20 | 50.00 |  50.00 | 72.61 |  90 | 250 |              27.73 |
+| speed           |   5 | 45.00 |  45.00 | 69.67 |  90 | 200 |              30.04 |
+
+Summary Statistics for Base Stat by Stat Name
