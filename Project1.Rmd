@@ -105,7 +105,8 @@ stat <- na.omit(stat)
 types <- pokemonapi(endpoint="types")
 game <- pokemonapi(endpoint="game")
 table(types$type)
-#Creates contingency table for amount of pokemon for each type
+table(game$games)
+#Creates contingency table for amount of pokemon for each type and games they are in
 g <- ggplot(data=types,aes(x=type)) #Creates object for type data that can be used to create plots
 g + geom_bar(aes(fill="red")) +
 theme(axis.text.x = element_text(angle = 90, hjust = 1),legend.position = "none") + labs(x="Pokemon Type",y="Count",title="Pokemon Type Bar Graph")
