@@ -22,6 +22,7 @@ In order to create functions to contact and interact with PokeAPI, the following
 - [`tidyverse`](https://www.tidyverse.org/packages/) - Family of packages for manipulating and visualizing data
 - [`jsonlite`](https://cran.r-project.org/web/packages/jsonlite/index.html) - package for dealing with and reading in JSON data in R
 - [`httr`](https://cran.r-project.org/web/packages/httr/vignettes/quickstart.html)- package used for contacting the API in order to retrieve data
+- [`knitr`](https://cran.r-project.org/web/packages/knitr/index.html): displaying tables in a markdown friendly way
 
 ```{r, message=FALSE, warning=FALSE}
 library(httr)
@@ -128,4 +129,18 @@ g4 <- ggplot(data=stat,aes(x=basestat))
 g4 + geom_boxplot() + facet_wrap(~statname) + labs(title="Base Stat level for each Stat Type",x="Base Stat")
 #This creates box plots for each type of stat over the level of the base stat for each pokemon.
 #Each stat has a similar median with attack being the highest slightly. Although, hp has more outliers and a higher max.
+
+#In order to see this numerically, I will now provide summary stats for the base stat of each different stat name
+statsum <- stat %>% select(basestat,statname) %>% 
+  group_by(statname) #group by each level of statname %>%
+  summarize("Min"=min(basestat),
+            "Q1"=quantile(basestat,0.25,na.rm=TRUE),
+            "Median"=quantile(basestat,0.25,na.rm=TRUE),
+            "Mean"=mean(basestat),
+            "Q3"=quantile(basestat,0.75,na.rm=TRUE),
+            "Max"=max(basestat),
+            "Standard Deviation"=sd(basestat))
+#Statsum now has summary statistics for base stat for each level of stat name
+#Now I will put this in a better looking table using the kable function
+knitr::kable(statsum,caption="Summary Statistics for Base Stat by Stat Name",digits=2)
 ```
